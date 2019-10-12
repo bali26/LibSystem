@@ -9,10 +9,12 @@ int usermenu();
 int checkPasswd();
 void book_add(); //link
 void book_del(); //link
-void book_get();
 void book_change();
-
-void fprint(struct book *head);
+void book_sort();
+void book_get();
+void admin_edit();
+void admin_fprint(struct admin* head);
+void fprint(struct book* head);
 struct book* load();
 struct book {
 	int num;
@@ -51,7 +53,7 @@ int main() {
 
 	while (1) {
 		system("cls");
-		menu: 
+	menu:
 		n = mainmenu();
 		switch (n) { //1.Admin 2.
 		case 3: //exit
@@ -72,23 +74,22 @@ int main() {
 				case 1:  //add
 					book_add();
 					break;
-				case 2:  //record
-					break;
-				case 3:  //get
-					book_get();
-					break;
-				case 4:  
-		
-				
-					//sort
-					break;
-				case 5:  //change
-					book_change();
-					break;
-				case 6:  //delete
+
+				case 2:  //del
 					book_del();
 					break;
-				case 7:  //edit
+				case 3:
+					//change
+					book_change();
+					break;
+				case 4:  //sort
+					
+					break;
+				case 5:  //get
+					book_get();
+					break;
+				case 6:  //edit
+					admin_edit();
 					break;
 					;
 				}
@@ -129,13 +130,13 @@ int adminmenu() {
 	printf("\t\t\t\t----------------------------------------------------------\n");
 	printf("\t\t\t\t**********************************************************\n");
 	printf("\t\t\t\tWELCOME, BackGround System.\n");
-	printf("\t\t\t\t1.Add Book Information       2.Record Book Information\n");
-	printf("\t\t\t\t3.Get Book Information       4.Sort Book Information\n");
-	printf("\t\t\t\t5.Change Book Information    6.delete Book Information\n");
-	printf("\t\t\t\t7.Edit Account               0.Exit\n");
+	printf("\t\t\t\t1.Add Book Information                 2.Delete Book Information\n");
+	printf("\t\t\t\t3.Change Book Information              4.Sort Book Information\n");
+	printf("\t\t\t\t5.Get Book Information                 6.Edit Account\n");
+	printf("\t\t\t\t                                       0.Exit\n");
 	printf("\t\t\t\t**********************************************************\n");
 	printf("\t\t\t\tEnter id: ");
-	scanf("%d",&x);
+	scanf("%d", &x);
 	getchar();
 	return x;
 }
@@ -149,7 +150,7 @@ int checkPasswd() {
 	FILE* fp;
 	char account[15], password[15];
 	struct admin* p1, * head = NULL, * tail = NULL;
-	if ((fp = fopen("admin.txt", "r")) == NULL) {
+	if ((fp = fopen("admin.txt", "a+")) == NULL) {
 		printf("File open error! \n");
 		exit(0);
 	}
@@ -169,33 +170,29 @@ int checkPasswd() {
 			tail->next = p1;
 		}
 		tail = p1;
-	
-}
+
+	}
 	tail->next = NULL;
-	fclose(fp);
-	p1 = head;
 	fclose(fp);
 
 	p1 = head;
 	printf("\t\t\t\tyour user name: ");
 	gets(account); //不读取换行符 会转换成\0   （char *str） 指针数组
-//	printf(account);
 
 	int isAccount = 0;
-
-	while (p1!=NULL) {
-
-		if (strcmp(p1->account, account)==0) {
-			isAccount = 1;
-			break;
-		}
-		p1 = NULL; //p1 = p1->next;
-	}
-
-	if (p1 == NULL) {
+	/*if (p1 == NULL) {
 		printf("\t\t\t\tthis account isn't exist!\n");
 		getchar();
 		return 0;
+	}*/
+
+	while (p1 != NULL) {
+
+		if (strcmp(p1->account, account) == 0) {
+			isAccount = 1;
+			break;
+		}
+		p1 = p1->next;
 	}
 
 	if (isAccount) {
@@ -205,7 +202,7 @@ int checkPasswd() {
 		if (strcmp(p1->password, password) == 0) {
 
 			printf("\t\t\t\t%s - password verification - [passed]\n", account);
-			printf("\t\t\t\t[Enter] into background" );
+			printf("\t\t\t\t[Enter] into background");
 			getchar();
 			system("cls");
 			return 1;
@@ -217,11 +214,16 @@ int checkPasswd() {
 			return 0;
 		}
 	}
-	
+	else {
+		printf("\t\t\t\tthis account isn't exist!\n");
+		getchar();
+		return 0;
+	}
+
 }
 
-struct book *load() { //form link
-	FILE *fp;
+struct book* load() { //form link
+	FILE* fp;
 	//struct book *head = NULL,*tail = NULL,*p1 = NULL;
 	struct book* head, * tail, * p1;
 	head = tail = NULL;
@@ -238,7 +240,7 @@ struct book *load() { //form link
 	rewind(fp); //warning
 	while (!feof(fp)) {  //feof(fp)!=NULL 并不等于 !feof(fp)   文件结束 非0   未结束 0   NULL用于指针和对象，0用于数值  int feof( FILE *stream );
 		p1 = (struct book*) malloc(sizeof(struct book));
-		fscanf(fp, "%d %s %s %s %s %d %d %d %f\n", &p1->num,p1->bname,p1->wname,p1->press,p1->sort,&p1->time.year,&p1->time.month,&p1->time.day,&p1->price);
+		fscanf(fp, "%d %s %s %s %s %d %d %d %f\n", &p1->num, p1->bname, p1->wname, p1->press, p1->sort, &p1->time.year, &p1->time.month, &p1->time.day, &p1->price);
 		if (head == NULL) {
 			head = p1; //头链表成员初始化
 			//head = (tail = p1); 
@@ -315,32 +317,32 @@ void book_add() {
 		printf("exist");
 
 		//while (p != NULL) {
-		while (p->next != NULL){
+		while (p->next != NULL) {
 			printf("p num: %d \n", p->num);
-		p = p->next;
+			p = p->next;
+
+		}
+		p->next = newbook;
+		//p = newbook;
+		//struct book* q;
+
+		//q = newbook;
+		//p = q;
+		//p->next = NULL;
+
+		fprint(head);
+
+		//insert link struct
 
 	}
-	p->next = newbook;
-	//p = newbook;
-	struct book* q;
-
-	//q = newbook;
-	//p = q;
-	//p->next = NULL;
-
-	fprint(head);
-
-	//insert link struct
-
-}
 	book_get();
 }
 void book_del() {
 	int num = 0;
-	struct book *head = NULL;
-	struct book *p = NULL;
+	struct book* head = NULL;
+	struct book* p = NULL;
 	printf("Enter delete num:");
-	scanf("%d",&num);
+	scanf("%d", &num);
 
 	head = load();
 	printf("输出头书名: %s", head->bname);
@@ -353,7 +355,7 @@ void book_del() {
 	}
 	//for (p;p!=NULL;p=p->next) {
 	struct book* q = NULL;
-	
+
 	if (head != NULL && head->num == num)
 	{
 		q = head;
@@ -364,14 +366,14 @@ void book_del() {
 	}
 	//p = head = load();
 	q = p->next; //p为A q为B p->next 下一个   q->next为C 下下个 A->B->C 目前要删除B
-	while(q!=NULL){ //第二个开始
-		if (q->num==num) {
-		printf("符合");
-		p->next = q->next; //第二个开始指向
-		free(q);//释放B
-		q = NULL;//避免野指针
-		fprint(head);
-		break;
+	while (q != NULL) { //第二个开始
+		if (q->num == num) {
+			printf("符合");
+			p->next = q->next; //第二个开始指向
+			free(q);//释放B
+			q = NULL;//避免野指针
+			fprint(head);
+			break;
 		}
 		else {
 			p = p->next;
@@ -394,11 +396,13 @@ void book_get() {
 		return;
 	}
 
-	printf(" 图书信息：");
-	printf("编号 图书名 作者名 出版社 类别 出版时间 价格\n");
-	
+	printf("Book Information：\n");
+	//printf("编号 图书名 作者名 出版社 类别 出版时间 价格\n");
+	printf("num        book         writer         press         sort         year         month         day         price\n");
+
 	while (head != NULL) {
-		printf("%d %s %s %s %s %d %d %d %f\n", head->num, head->bname, head->wname, head->press, head->sort, head->time.year, head->time.month, head->time.day, head->price);
+		//printf("%d %s %s %s %s %d %d %d %f\n", head->num, head->bname, head->wname, head->press, head->sort, head->time.year, head->time.month, head->time.day, head->price);
+		printf("%d %10s %12s %14s %15s %10d %12d %13d %19f \n", head->num, head->bname, head->wname, head->press, head->sort, head->time.year, head->time.month, head->time.day, head->price);
 		head = head->next;
 	}
 	getchar();
@@ -406,24 +410,24 @@ void book_get() {
 }
 void book_change() {
 	int num;
-	struct book* head=NULL,*p=NULL;
+	struct book* head = NULL, * p = NULL;
 	head = load();
 
 	if (head == NULL) {
 		printf("File content error!\n");
 		exit(0);
 	}
-	printf("Enter Book Num: \n");
-	scanf("%d",&num);
+	printf("Enter Book Num: ");
+	scanf("%d", &num);
 	p = head;
 	while (p != NULL) {
 		if (p->num == num) {
-			
+
 			printf("==========================================\n");
 			printf("The content of the book to be revised\n");
 			printf("==========================================\n");
-			printf("序号 书名 作者名 出版社 类型 年 月 日 金额\n");
-			printf("%d %s %s %s %s %d %d %d %f \n", p->num, p->bname, p->wname, p->press, p->sort, p->time.year, p->time.month, p->time.day, p->price);
+			printf("num        book         writer         press         sort         year         month         day         price\n");
+			printf("%d %10s %12s %14s %15s %10d %12d %13d %19f \n", p->num, p->bname, p->wname, p->press, p->sort, p->time.year, p->time.month, p->time.day, p->price);
 			printf("==========================================\n");
 			printf("What you want to modify:\n");
 			printf("1.Num           2.BookName\n");
@@ -432,40 +436,56 @@ void book_change() {
 			printf("7.Month         8.Day\n");
 			printf("9.Price	        0.Exit\n");
 			printf("==========================================\n");
-			int x=0;
-			scanf("%d",&x);
+			int x = 0;
+			scanf("%d", &x);
 			switch (x) {
 			case 0: //exit
 				exit(0);
 				break;
 			case 1:
+				printf("Enter new number:");
 				scanf("%d", &p->num);
-				break; 
+				printf("modify successfully!\n");
+				break;
 			case 2:
-				printf("\t\t\t请输入新图书名:");
-				gets(p->bname);
-				printf("\t\t\t修改成功!\n");
+				printf("Enter new book name:");
+				scanf("%s", p->bname);
+				printf("modify successfully!\n");
 				break;
 			case 3:
-				gets(p->wname);
+				printf("Enter new writer name:");
+				scanf("%s", p->wname);
+				printf("modify successfully!\n");
 				break;
 			case 4:
-				gets(p->press);
+				printf("Enter new press:");
+				scanf("%s", p->press);
+				printf("modify successfully!\n");
 				break;
 			case 5:
-				gets(p->sort);
+				printf("Enter new sort:");
+				scanf("%s", p->sort);
+				printf("modify successfully!\n");
 				break;
 			case 6:
+				printf("Enter new year:");
 				scanf("%d", &p->time.year);
+				printf("modify successfully!\n");
 				break;
 			case 7:
+				printf("Enter new month:");
 				scanf("%d", &p->time.month);
+				printf("modify successfully!\n");
 				break;
 			case 8:
+				printf("Enter new day:");
 				scanf("%d", &p->time.day);
+				printf("modify successfully!\n");
 				break;
 			case 9:
+				printf("Enter new price:");
 				scanf("%f", &p->price);
+				printf("modify successfully!\n");
 				break;
 
 
@@ -475,31 +495,137 @@ void book_change() {
 	}
 	fprint(head);
 
+}
+
+void admin_edit() {
+	FILE* fp;
+	char account[15];
+	char password[15];
+	struct admin* head =NULL,*tail = NULL,*p=NULL ,*q=NULL;
+
+	if ((fp = fopen("admin.txt","a+"))==NULL) {
+		printf("File open error! \n");
+		exit(0);
+	}
+
+	while (!feof(fp)) {
+		p = (struct admin*)malloc(sizeof(struct admin));
+		fscanf(fp, "%s%s\n", p->account, p->password);
+		printf("我是account: %s\n",p->account);
+		printf("我是password: %s\n",p->password);
+		if (head == NULL) {
+			head = p;
+		}
+		else {
+			tail->next = p;
+		}
+		tail = p;
+		
+	}
+	tail->next = NULL;
+	fclose(fp);
+
+	printf("=====================\n");
+	printf("Account Edit\n");
+	printf("=====================\n");
+	printf("1.Register 2.Remove\n");
+	printf("3.Edit     0.exit\n");
+	printf("=====================\n");
+	int num;
+	printf("Please enter your number:");
+	scanf("%d", &num);
+	switch (num) {
+	case 0: //exit
+		exit(0);
+		break;
+	case 1: //register
+		p = head;
+		printf("Please enter your account:");
+		scanf("%s", &account);
+		while (p != NULL) {
+			if (strcmp(head->account, account) == 0) {
+				printf("Your enter account is exist!\n");
+				getchar();
+				return 0;
+			}
+			p = p->next;
+		}
+		printf("Please Enter your password ,it must be less than 15 characters! \n");
+		
+		q= (struct admin*)malloc(sizeof(struct admin));
+		strcpy(q->account, account);
+		scanf("%s", q->password);
+		q->next = NULL;
+
+	//	head = p;
+
+		getchar();
+
+		admin_fprint(head);
+
+		printf("Register Successfully!");
+		system("pause");
+		
+		break;
+	case 2: //remove
+		break;
+	case 3: //edit
+		break;
+	
+	}
+
+
+
 
 }
+
 void fprint(struct book* head) {
 
-	FILE *fp;
+	FILE* fp;
 	struct book* p1 = NULL;
 	if ((fp = fopen("book.txt", "w+")) == NULL) {
-	
+
 		printf("book.txt File open error! \n");
 		exit(0);//OS
 	}
 	printf("1");
 	system("pause");
 	p1 = head;
-	while(p1!=NULL){
-	//for (p1 = head; p1; p1 = p1->next) { // !=NULL
+	while (p1 != NULL) {
+		//for (p1 = head; p1; p1 = p1->next) { // !=NULL
 		printf("2");
-		fprintf(fp,"%d %s %s %s %s %d %d %d %f\n", p1->num, p1->bname, p1->wname, p1->press,
+		fprintf(fp, "%d %s %s %s %s %d %d %d %f\n", p1->num, p1->bname, p1->wname, p1->press,
 			p1->sort, p1->time.year, p1->time.month, p1->time.day, p1->price); //输出到fp 不用取地址
-		
+
+
 		system("pause");
-	
+
 		p1 = p1->next;
 	}
 	printf("3");
 	system("pause");
+	fclose(fp);
+}
+
+void admin_fprint(struct admin* head) {
+	FILE* fp;
+	struct admin * tail = NULL, * p = NULL;
+	if ((fp = fopen("admin.txt", "w+")) == NULL) {
+		printf("File open error!\n");
+		exit(0);
+	}
+	p = head;
+	//p = (struct admin*)malloc(sizeof(struct admin));
+	while (head != NULL) {
+		printf("%s", head->account);
+		printf("%s", head->password);
+		fprintf(fp, "%s %s\n", head->account,head->password);
+		head = head->next;
+	}
+
+/*	for (p = head; p; p = p->next)
+	{
+		fprintf(fp, "%s %s\n", p->account, p->password);
+	}*/
 	fclose(fp);
 }
