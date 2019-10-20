@@ -15,6 +15,12 @@ void book_get();
 void admin_edit();
 void admin_fprint(struct admin* head);
 void fprint(struct book* head);
+
+struct admin* admin_init();
+struct admin* admin_add(struct admin* link);
+struct admin* admin_del(struct admin* link);
+struct admin* admin_change(struct admin* link);
+void admin_see(struct admin* link);
 struct book* load();
 struct book {
 	int num;
@@ -83,7 +89,7 @@ int main() {
 					book_change();
 					break;
 				case 4:  //sort
-					
+
 					break;
 				case 5:  //get
 					book_get();
@@ -498,32 +504,20 @@ void book_change() {
 }
 
 void admin_edit() {
-	FILE* fp;
-	char account[15];
-	char password[15];
-	struct admin* head =NULL,*tail = NULL,*p=NULL ,*q=NULL;
 
-	if ((fp = fopen("admin.txt","a+"))==NULL) {
-		printf("File open error! \n");
+	FILE* fp;
+	int ret;
+	struct admin* ad = NULL;
+	if ((fp = fopen("admin.txt", "a+")) == NULL) {
+		printf("File open failed");
 		exit(0);
 	}
+	char* account = (char*)malloc(sizeof(char));
+	char* password = (char*)malloc(sizeof(char));
+	struct admin* head = NULL, * p = NULL, * tail = NULL, * n = NULL;
 
-	while (!feof(fp)) {
-		p = (struct admin*)malloc(sizeof(struct admin));
-		fscanf(fp, "%s%s\n", p->account, p->password);
-		printf("我是account: %s\n",p->account);
-		printf("我是password: %s\n",p->password);
-		if (head == NULL) {
-			head = p;
-		}
-		else {
-			tail->next = p;
-		}
-		tail = p;
-		
-	}
-	tail->next = NULL;
-	fclose(fp);
+	p = (struct admin*)malloc(sizeof(struct admin));
+
 
 	printf("=====================\n");
 	printf("Account Edit\n");
@@ -531,54 +525,70 @@ void admin_edit() {
 	printf("1.Register 2.Remove\n");
 	printf("3.Edit     0.exit\n");
 	printf("=====================\n");
+
 	int num;
 	printf("Please enter your number:");
 	scanf("%d", &num);
+
+
+	/*	while (fscanf(fp, "%s %s", p->account, p->password) != EOF) { //fscanf 格式化读取每行 且不等于EOF
+
+			printf("out0: %s %s\n", p->account, p->password);
+			p = p->next;
+		}*/
+
+
+	struct admin* link = admin_init();
+
+	while (1) {
+		ret = (fscanf(fp, "%s %s", p->account, p->password));
+		if (ret == EOF) break;
+		if (ret == 2) {
+			admin_add(link, p->account, p->password);
+		}
+		else {
+			printf("%d\n", ret);
+			perror("fscanf:");
+			break;
+		}
+	}
+	admin_see(link);
+	fclose(fp);
 	switch (num) {
-	case 0: //exit
+	case 0: //exit"
 		exit(0);
 		break;
 	case 1: //register
-		p = head;
+		printf("ENTER");
 		printf("Please enter your account:");
-		scanf("%s", &account);
-		while (p != NULL) {
-			if (strcmp(head->account, account) == 0) {
-				printf("Your enter account is exist!\n");
-				getchar();
-				return 0;
-			}
-			p = p->next;
-		}
-		printf("Please Enter your password ,it must be less than 15 characters! \n");
-		
-		q= (struct admin*)malloc(sizeof(struct admin));
-		strcpy(q->account, account);
-		scanf("%s", q->password);
-		q->next = NULL;
-
-	//	head = p;
-
-		getchar();
-
-		admin_fprint(head);
-
-		printf("Register Successfully!");
+		scanf("%s", account);
+		printf("Please enter your password:");
+		scanf("%s", password);
+		admin_add(link, account, password);
 		system("pause");
-		
+		admin_see(link);
+		admin_fprint(link);
+
 		break;
 	case 2: //remove
+		printf("Please enter your account:");
+		scanf("%s", account);
+		admin_del(link, account);
+		admin_fprint(link);
 		break;
 	case 3: //edit
+		printf("Please enter your account:");
+		scanf("%s", account);
+		admin_change(link, account);
+		system("pause");
+		admin_see(link);
+		admin_fprint(link);
+
 		break;
-	
+
 	}
 
-
-
-
 }
-
 void fprint(struct book* head) {
 
 	FILE* fp;
@@ -609,23 +619,125 @@ void fprint(struct book* head) {
 
 void admin_fprint(struct admin* head) {
 	FILE* fp;
-	struct admin * tail = NULL, * p = NULL;
+	struct admin* tail = NULL, * p = NULL;
 	if ((fp = fopen("admin.txt", "w+")) == NULL) {
 		printf("File open error!\n");
 		exit(0);
 	}
-	p = head;
+	//p = head;
 	//p = (struct admin*)malloc(sizeof(struct admin));
-	while (head != NULL) {
-		printf("%s", head->account);
-		printf("%s", head->password);
-		fprintf(fp, "%s %s\n", head->account,head->password);
+	while (head->next != NULL) {
 		head = head->next;
-	}
+	//	printf("out3: %s\n", head->account);
+	//	printf("out3: %s\n", head->password);
+		fprintf(fp, "%s %s\n", head->account, head->password);
 
-/*	for (p = head; p; p = p->next)
-	{
-		fprintf(fp, "%s %s\n", p->account, p->password);
-	}*/
+	}
+	getchar();
+	system("pause");
 	fclose(fp);
+	//	head = head->next;
+	//}
+
+	/*	for (p = head; p; p = p->next)
+		{
+			fprintf(fp, "%s %s\n", p->account, p->password);
+		}*/
+}
+
+
+struct admin* admin_init() {
+	printf("admin_init\n");
+	struct admin* head = NULL;
+
+	head = (struct admin*)malloc(sizeof(struct admin));
+
+	head->next = NULL;
+
+	return head;
+
+}
+
+struct admin* admin_add(struct admin* link, char* account, char* password) {
+	printf("admin_add\n");
+	struct admin* head, * node;
+	head = link;
+	node = (struct admin*) malloc(sizeof(struct admin));
+	while (link->next != NULL) {
+		link = link->next;
+	}
+	strcpy(node->account, account);
+	strcpy(node->password, password);
+	node->next = NULL;
+	link->next = node;
+
+	return head;
+}
+struct admin* admin_del(struct admin* link, char* account) {
+	//printf("admin_del-account: %s \n",account);
+	struct admin* head = NULL, *p,* p2 = NULL;
+	p = link;
+	if (p == NULL) {
+		printf("admin.txt is null");
+		exit(0);
+	}
+	else {
+		//printf("Multiple elements");
+		 //Multiple elements
+		while (p->next != NULL) {
+			p2 = p->next;
+			if ((strcmp(p2->account, account)) == 0) {
+			p->next = p2->next;
+			free(p2);
+			return 0;
+			}
+			p = p->next;
+		}
+	}
+	return link;
+}
+
+struct admin* admin_change(struct admin* link,char * account) {
+	struct admin * p=NULL,*p2=NULL;
+
+	if (link == NULL) {
+		printf("admin.txt is null");
+		exit(0);
+	}
+	p = link;
+	p2 = p->next;
+	//single
+	/*if (p2->next == NULL) {
+		if (strcmp(p2->account, account) == 0) {
+			printf("enter you want to change password: \n");
+			char* password = (char*)malloc(sizeof(char));
+			scanf("%d", password);
+			strcpy(p2->password, password);
+			printf("Change password Successfully!");
+
+		}
+	}*/
+	//multiple elements
+	while (p2 != NULL) {
+		if (strcmp(p2->account, account) == 0) {
+			char* password = (char*)malloc(sizeof(char));
+			printf("enter you want to change password: \n");
+			scanf("%s", password);
+			strcpy(p2->password, password);
+			printf("Change password Successfully!");
+			break;
+		}
+		p2 = p2->next;
+	}
+	return link;
+	
+}
+void admin_see(struct admin* link) {
+	//printf("admin_see\n");
+	while (link->next != NULL) {
+		link = link->next;
+		printf("out_admin_see_account: %s \n", link->account);
+		printf("out_admin_see_password: %s \n", link->password);
+
+	}
 }
